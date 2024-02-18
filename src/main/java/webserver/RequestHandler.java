@@ -1,5 +1,7 @@
 package webserver;
 
+import static util.IOUtils.*;
+
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -13,6 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,28 +41,47 @@ public class RequestHandler extends Thread {
 		try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()) {
 			// TODO 사용자 요청에 대한 처리는 이 곳에 구현하면 된다.
 			BufferedReader br = new BufferedReader(new InputStreamReader(in));
-			List<String> lines = new ArrayList<>();
+			List<String> headerLines = new ArrayList<>();
+			String params = "";
+			Map<String, String> requestArguments = new HashMap<>();
+
 			// 요청 헤더를 읽는다.
 			while (true) {
 				String line = br.readLine();
-				if ((line == null) || line.isEmpty())
+				if ((line == null) || line.isEmpty()) {
+					Optional<String> contentLength = headerLines.stream()
+						.filter(headerLine -> headerLine.contains("Content-Length"))
+						.findAny();
+					if (contentLength.isPresent()) {
+						String[] contentLengthSplit = contentLength.get().split(":");
+						params = readData(br, Integer.parseInt(contentLengthSplit[1].trim()));
+						log.info("params = {}", params);
+					}
 					break;
-				lines.add(line);
+				}
+				headerLines.add(line);
 			}
-			// GET매핑
+
+			for (String headerLine : headerLines) {
+				log.info("headerRead = {}", headerLine);
+			}
+
 			// 요청 url에서 requestPath와 params를 분리함
-			String url = extreactRequestURL(lines);
+			String httpMethod = extreactHttpMethod(headerLines);
+			String url = extreactRequestURL(headerLines);
 			int index = url.indexOf("?");
 			String requestPath = url;
-			String params = "";
-			Map<String, String> requestArguments = new HashMap<>();
-			if (index > 0) {
+
+			//GET 매핑
+			if (httpMethod.equals(HttpMethod.GET.name()) && (index > 0)) {
 				requestPath = url.substring(0, Math.max(index, 0));
 				params = url.substring(index + 1);
 			}
+
 			// 요청 값을 객체에 담는다
 			requestArguments = HttpRequestUtils.parseQueryString(params);
 			User model = createModel(requestArguments);
+			log.info("model = {}", model);
 
 			// POST 매핑 (requestBody에서 데이터 옴)
 			byte[] body = createBody(requestPath);
@@ -72,6 +94,18 @@ public class RequestHandler extends Thread {
 		}
 	}
 
+	private String extreactHttpMethod(List<String> lines) {
+		if (!lines.isEmpty()) {
+			return CustomHttpRequestUtil.parseHttpMethod(lines.get(0), " ");
+		}
+		return "";
+	}
+
+	/**
+	 * request를 user 객체로 변경한다
+	 * @param requestParams
+	 * @return User
+	 */
 	private User createModel(Map<String, String> requestParams) {
 		// 하드코딩?
 		return new User(
