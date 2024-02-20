@@ -4,7 +4,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import webserver.servlet.Controller;
+import webserver.servlet.IndexController;
 import webserver.servlet.LogInController;
+import webserver.servlet.LogInFormController;
 import webserver.servlet.RegisterController;
 import webserver.servlet.RegisterFormController;
 
@@ -13,8 +15,10 @@ public class HandlerMapping {
 	protected ConcurrentMap<String, Controller> handlerMap = new ConcurrentHashMap<>();
 
 	public HandlerMapping() {
+		handlerMap.put("/index.html", new IndexController());
 		handlerMap.put("/user/create", new RegisterController());
 		handlerMap.put("/user/form.html", new RegisterFormController());
+		handlerMap.put("/user/login.html", new LogInFormController());
 		handlerMap.put("/user/login", new LogInController());
 	}
 

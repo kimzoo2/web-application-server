@@ -12,15 +12,12 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import model.User;
 import util.CustomHttpRequestUtil;
 import util.HttpRequestUtils;
 import webserver.servlet.Controller;
@@ -43,7 +40,6 @@ public class RequestHandler extends Thread {
 			BufferedReader br = new BufferedReader(new InputStreamReader(in));
 			List<String> headerLines = new ArrayList<>();
 			String params = "";
-			Map<String, String> requestArguments = new HashMap<>();
 
 			// 요청 헤더를 읽는다.
 			while (true) {
@@ -81,35 +77,40 @@ public class RequestHandler extends Thread {
 			HandlerMapping handlerMapping = new HandlerMapping();
 			Controller controller = handlerMapping.controller(requestPath);
 
-			// 요청 값을 객체에 담는다
-			requestArguments = HttpRequestUtils.parseQueryString(params);
+			// 요청 값을 httpRequest에 담는다
+			HttpRequest httpRequest =
+				new HttpRequest(HttpRequestUtils.parseQueryString(params), "");
 
 			if(httpMethod.equals(HttpMethod.POST.name())){
-				requestPath = controller.doPost(requestArguments);
+				requestPath = controller.doPost(httpRequest);
 			}
 			if(httpMethod.equals(HttpMethod.GET.name())){
-				requestPath = controller.doGet(requestArguments);
+				requestPath = controller.doGet(httpRequest);
 			}
 
 			// responseBody를 생성하여 응답한다.
 			DataOutputStream dos = new DataOutputStream(out);
-			createResponseBody(dos, requestPath);
+			createResponseBody(dos, requestPath, httpRequest);
+
 
 		} catch (IOException e) {
 			log.error(e.getMessage());
 		}
 	}
 
-	private void createResponseBody(DataOutputStream dos, String requestPath) throws IOException {
+	private void createResponseBody(DataOutputStream dos, String requestPath, HttpRequest httpRequest) throws IOException {
 		byte[] body = null;
 		if(requestPath.contains("redirect:/")){
 			int index = requestPath.indexOf(":");
 			requestPath = requestPath.substring(index+1);
 			body = createViewPath(requestPath);
-			response300Header(dos, body.length, requestPath);
+			response300Header(dos, body.length, requestPath, httpRequest);
 		}else {
 			body = createViewPath(requestPath);
-			response200Header(dos, body.length);
+			response200Header(dos, body.length, httpRequest);
+		}
+		if(!httpRequest.getCookie().equals("")) {
+			createCookie(dos, httpRequest.getCookie());
 		}
 		responseBody(dos, body);
 	}
@@ -134,23 +135,38 @@ public class RequestHandler extends Thread {
 		return "";
 	}
 
-	private void response300Header(DataOutputStream dos, int lengthOfBodyContent, String requestPath) {
+	private void createCookie(DataOutputStream dos, String cookies){
 		try {
-			dos.writeBytes("HTTP/1.1 302 OK \r\n");
-			dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
-			dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
-			dos.writeBytes("Location: " + requestPath + "\r\n");
+			dos.writeBytes("Set-cookie:" + cookies + "\r\n");
 			dos.writeBytes("\r\n");
 		} catch (IOException e) {
 			log.error(e.getMessage());
 		}
 	}
 
-	private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
+	private void response300Header(DataOutputStream dos, int lengthOfBodyContent, String requestPath, HttpRequest httpRequest) {
+		try {
+			dos.writeBytes("HTTP/1.1 302 OK \r\n");
+			dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
+			dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
+			dos.writeBytes("Location: " + requestPath + "\r\n");
+			if(!httpRequest.getCookie().equals("")) {
+				createCookie(dos, httpRequest.getCookie());
+			}
+			dos.writeBytes("\r\n");
+		} catch (IOException e) {
+			log.error(e.getMessage());
+		}
+	}
+
+	private void response200Header(DataOutputStream dos, int lengthOfBodyContent, HttpRequest httpRequest) {
 		try {
 			dos.writeBytes("HTTP/1.1 200 OK \r\n");
 			dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
 			dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
+			if(!httpRequest.getCookie().equals("")) {
+				createCookie(dos, httpRequest.getCookie());
+			}
 			dos.writeBytes("\r\n");
 		} catch (IOException e) {
 			log.error(e.getMessage());

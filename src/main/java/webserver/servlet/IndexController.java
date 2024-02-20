@@ -2,7 +2,7 @@ package webserver.servlet;
 
 import webserver.HttpRequest;
 
-public class RegisterFormController implements Controller {
+public class IndexController implements Controller {
 	@Override
 	public String doPost(HttpRequest httpRequest) {
 		return null;
@@ -10,6 +10,6 @@ public class RegisterFormController implements Controller {
 
 	@Override
 	public String doGet(HttpRequest httpRequest) {
-		return "/user/form.html";
+		return "/index.html";
 	}
 }

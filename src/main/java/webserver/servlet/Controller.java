@@ -1,10 +1,10 @@
 package webserver.servlet;
 
-import java.util.Map;
+import webserver.HttpRequest;
 
 public interface Controller {
 
-	String doPost(Map<String, String> request);
-	String doGet(Map<String, String> request);
+	String doPost(HttpRequest httpRequest);
+	String doGet(HttpRequest httpRequest);
 
 }

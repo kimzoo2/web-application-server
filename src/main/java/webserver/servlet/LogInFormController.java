@@ -1,15 +1,15 @@
 package webserver.servlet;
 
-import java.util.Map;
+import webserver.HttpRequest;
 
 public class LogInFormController implements Controller{
 	@Override
-	public String doPost(Map<String, String> request) {
+	public String doPost(HttpRequest httpRequest) {
 		return null;
 	}
 
 	@Override
-	public String doGet(Map<String, String> request) {
+	public String doGet(HttpRequest httpRequest) {
 		return "/user/login.html";
 	}
 }
