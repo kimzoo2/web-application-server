@@ -39,7 +39,6 @@ public class RequestHandler extends Thread {
 			connection.getPort());
 
 		try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()) {
-			// TODO 사용자 요청에 대한 처리는 이 곳에 구현하면 된다.
 			BufferedReader br = new BufferedReader(new InputStreamReader(in));
 			List<String> headerLines = new ArrayList<>();
 			String params = "";
@@ -72,10 +71,13 @@ public class RequestHandler extends Thread {
 			int index = url.indexOf("?");
 			String requestPath = url;
 
-			//GET 매핑
 			if (httpMethod.equals(HttpMethod.GET.name()) && (index > 0)) {
 				requestPath = url.substring(0, Math.max(index, 0));
 				params = url.substring(index + 1);
+			}
+
+			if(httpMethod.equals(HttpMethod.POST.name())){
+				requestPath = "/user/login.html";
 			}
 
 			// 요청 값을 객체에 담는다
@@ -83,22 +85,13 @@ public class RequestHandler extends Thread {
 			User model = createModel(requestArguments);
 			log.info("model = {}", model);
 
-			// POST 매핑 (requestBody에서 데이터 옴)
-			byte[] body = createBody(requestPath);
-
+			// responseBody를 생성하여 응답한다.
 			DataOutputStream dos = new DataOutputStream(out);
-			response200Header(dos, body.length);
-			responseBody(dos, body);
+			createResponseBody(dos, httpMethod, requestPath);
+
 		} catch (IOException e) {
 			log.error(e.getMessage());
 		}
-	}
-
-	private String extreactHttpMethod(List<String> lines) {
-		if (!lines.isEmpty()) {
-			return CustomHttpRequestUtil.parseHttpMethod(lines.get(0), " ");
-		}
-		return "";
 	}
 
 	/**
@@ -116,7 +109,25 @@ public class RequestHandler extends Thread {
 		);
 	}
 
-	private byte[] createBody(String url) throws IOException {
+	private void createResponseBody(
+		DataOutputStream dos, String httpMethodName, String requestPath) throws IOException {
+		byte[] body = createViewPath(requestPath);
+		if(httpMethodName.equals(HttpMethod.POST.name())) {
+			response300Header(dos, body.length, requestPath);
+		}else{
+			response200Header(dos, body.length);
+		}
+		responseBody(dos, body);
+	}
+
+	private String extreactHttpMethod(List<String> lines) {
+		if (!lines.isEmpty()) {
+			return CustomHttpRequestUtil.parseHttpMethod(lines.get(0), " ");
+		}
+		return "";
+	}
+
+	private byte[] createViewPath(String url) throws IOException {
 		String pathName = "./webapp";
 		log.debug("url : {}", url);
 		return Files.readAllBytes(new File(pathName + url).toPath());
@@ -127,6 +138,18 @@ public class RequestHandler extends Thread {
 			return CustomHttpRequestUtil.parseURL(lines.get(0), " ");
 		}
 		return "";
+	}
+
+	private void response300Header(DataOutputStream dos, int lengthOfBodyContent, String requestPath) {
+		try {
+			dos.writeBytes("HTTP/1.1 302 OK \r\n");
+			dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
+			dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
+			dos.writeBytes("Location: " + requestPath + "\r\n");
+			dos.writeBytes("\r\n");
+		} catch (IOException e) {
+			log.error(e.getMessage());
+		}
 	}
 
 	private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
