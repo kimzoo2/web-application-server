@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import model.User;
 import util.CustomHttpRequestUtil;
 import util.HttpRequestUtils;
+import webserver.servlet.Controller;
 
 public class RequestHandler extends Thread {
 	private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
@@ -76,8 +77,15 @@ public class RequestHandler extends Thread {
 				params = url.substring(index + 1);
 			}
 
+			// 비즈니스 로직을 처리하고 논리적 뷰를 return 해주는 Controller 추가
+			HandlerMapping handlerMapping = new HandlerMapping();
+			Controller controller = handlerMapping.controller(requestPath);
+
 			if(httpMethod.equals(HttpMethod.POST.name())){
-				requestPath = "/user/login.html";
+				requestPath = controller.doPost();
+			}
+			if(httpMethod.equals(HttpMethod.GET.name())){
+				requestPath = controller.doGet();
 			}
 
 			// 요청 값을 객체에 담는다
@@ -87,7 +95,7 @@ public class RequestHandler extends Thread {
 
 			// responseBody를 생성하여 응답한다.
 			DataOutputStream dos = new DataOutputStream(out);
-			createResponseBody(dos, httpMethod, requestPath);
+			createResponseBody(dos, requestPath);
 
 		} catch (IOException e) {
 			log.error(e.getMessage());
@@ -109,12 +117,15 @@ public class RequestHandler extends Thread {
 		);
 	}
 
-	private void createResponseBody(
-		DataOutputStream dos, String httpMethodName, String requestPath) throws IOException {
-		byte[] body = createViewPath(requestPath);
-		if(httpMethodName.equals(HttpMethod.POST.name())) {
+	private void createResponseBody(DataOutputStream dos, String requestPath) throws IOException {
+		byte[] body = null;
+		if(requestPath.contains("redirect:/")){
+			int index = requestPath.indexOf(":");
+			requestPath = requestPath.substring(index+1);
+			body = createViewPath(requestPath);
 			response300Header(dos, body.length, requestPath);
-		}else{
+		}else {
+			body = createViewPath(requestPath);
 			response200Header(dos, body.length);
 		}
 		responseBody(dos, body);
