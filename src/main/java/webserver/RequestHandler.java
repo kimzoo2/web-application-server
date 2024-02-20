@@ -82,10 +82,10 @@ public class RequestHandler extends Thread {
 				new HttpRequest(HttpRequestUtils.parseQueryString(params), readCookie(headerLines));
 			HttpResponse httpResponse = new HttpResponse(requestPath);
 
-			if(httpMethod.equals(HttpMethod.POST.name())){
+			if(controller != null && httpMethod.equals(HttpMethod.POST.name())){
 				controller.doPost(httpRequest, httpResponse);
 			}
-			if(httpMethod.equals(HttpMethod.GET.name())){
+			if(controller != null && httpMethod.equals(HttpMethod.GET.name())){
 				controller.doGet(httpRequest, httpResponse);
 			}
 
@@ -109,7 +109,7 @@ public class RequestHandler extends Thread {
 			response300Header(dos, body.length, responsePath, httpRequest);
 		}else {
 			body = createViewPath(responsePath);
-			response200Header(dos, body.length, httpRequest);
+			response200Header(dos, body.length, httpRequest, httpResponse);
 		}
 		responseBody(dos, body);
 	}
@@ -136,7 +136,7 @@ public class RequestHandler extends Thread {
 
 	private String readCookie(List<String> headerLines){
 		return headerLines.stream()
-			.filter(headerLine -> headerLine.contains("Set-cookies"))
+			.filter(headerLine -> headerLine.contains("Cookie"))
 			.findAny()
 			.orElse("");
 	}
@@ -165,7 +165,7 @@ public class RequestHandler extends Thread {
 		}
 	}
 
-	private void response200Header(DataOutputStream dos, int lengthOfBodyContent, HttpRequest httpRequest) {
+	private void response200Header(DataOutputStream dos, int lengthOfBodyContent, HttpRequest httpRequest, HttpResponse httpResponse) {
 		try {
 			dos.writeBytes("HTTP/1.1 200 OK \r\n");
 			dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
@@ -174,6 +174,10 @@ public class RequestHandler extends Thread {
 				createCookie(dos, httpRequest.getCookie());
 			}
 			dos.writeBytes("\r\n");
+			if(httpResponse.getStringBuilder() != null){
+				log.info("response = {}", httpResponse.getStringBuilder());
+				dos.writeBytes(String.valueOf(httpResponse.getStringBuilder()));
+			}
 		} catch (IOException e) {
 			log.error(e.getMessage());
 		}
