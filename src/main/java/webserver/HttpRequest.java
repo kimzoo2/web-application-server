@@ -19,4 +19,8 @@ public class HttpRequest {
 		this.cookie = cookies;
 	}
 
+	public boolean hasCookies(){
+		return !cookie.equals("");
+	}
+
 }

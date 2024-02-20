@@ -1,15 +1,16 @@
 package webserver.servlet;
 
 import webserver.HttpRequest;
+import webserver.HttpResponse;
 
 public class RegisterFormController implements Controller {
 	@Override
-	public String doPost(HttpRequest httpRequest) {
-		return null;
+	public void doPost(HttpRequest httpRequest, HttpResponse httpResponse) {
+
 	}
 
 	@Override
-	public String doGet(HttpRequest httpRequest) {
-		return "/user/form.html";
+	public void doGet(HttpRequest httpRequest, HttpResponse httpResponse) {
+		httpResponse.setResponsePath("/user/form.html");
 	}
 }

@@ -5,23 +5,25 @@ import java.util.Map;
 import db.DataBase;
 import model.User;
 import webserver.HttpRequest;
+import webserver.HttpResponse;
 
 public class LogInController implements Controller {
 	@Override
-	public String doPost(HttpRequest httpRequest) {
+	public void doPost(HttpRequest httpRequest, HttpResponse httpResponse) {
 		User model = createModel(httpRequest.getRequestArguments());
 		User foundUser = DataBase.findUserById(model.getUserId());
 		if(foundUser == null){
 			httpRequest.setCookies("logined=false");
-			return "/user/login_failed.html";
+			httpResponse.setResponsePath("/user/login_failed.html");
+			return;
 		}
 		httpRequest.setCookies("logined=true");
-		return "/index.html";
+		httpResponse.setResponsePath("/index.html");
 	}
 
 	@Override
-	public String doGet(HttpRequest httpRequest) {
-		return null;
+	public void doGet(HttpRequest httpRequest, HttpResponse httpResponse) {
+
 	}
 
 	/**

@@ -1,15 +1,17 @@
 package webserver.servlet;
 
 import webserver.HttpRequest;
+import webserver.HttpResponse;
 
 public class IndexController implements Controller {
+
 	@Override
-	public String doPost(HttpRequest httpRequest) {
-		return null;
+	public void doPost(HttpRequest httpRequest, HttpResponse httpResponse) {
+
 	}
 
 	@Override
-	public String doGet(HttpRequest httpRequest) {
-		return "/index.html";
+	public void doGet(HttpRequest httpRequest, HttpResponse httpResponse) {
+		httpResponse.setResponsePath("/index.html");
 	}
 }

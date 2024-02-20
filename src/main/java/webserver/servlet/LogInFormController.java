@@ -1,15 +1,16 @@
 package webserver.servlet;
 
 import webserver.HttpRequest;
+import webserver.HttpResponse;
 
 public class LogInFormController implements Controller{
 	@Override
-	public String doPost(HttpRequest httpRequest) {
-		return null;
+	public void doPost(HttpRequest httpRequest, HttpResponse httpResponse) {
+
 	}
 
 	@Override
-	public String doGet(HttpRequest httpRequest) {
-		return "/user/login.html";
+	public void doGet(HttpRequest httpRequest, HttpResponse httpResponse) {
+		httpResponse.setResponsePath("/user/login.html");
 	}
 }

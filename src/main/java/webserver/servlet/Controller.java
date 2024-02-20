@@ -1,10 +1,11 @@
 package webserver.servlet;
 
 import webserver.HttpRequest;
+import webserver.HttpResponse;
 
 public interface Controller {
 
-	String doPost(HttpRequest httpRequest);
-	String doGet(HttpRequest httpRequest);
+	void doPost(HttpRequest httpRequest, HttpResponse httpResponse);
+	void doGet(HttpRequest httpRequest, HttpResponse httpResponse);
 
 }

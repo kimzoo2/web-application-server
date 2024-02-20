@@ -6,22 +6,22 @@ import db.DataBase;
 import lombok.extern.slf4j.Slf4j;
 import model.User;
 import webserver.HttpRequest;
+import webserver.HttpResponse;
 
 @Slf4j
 public class RegisterController  implements Controller {
+
 	@Override
-	public String doPost(HttpRequest httpRequest) {
+	public void doPost(HttpRequest httpRequest, HttpResponse httpResponse) {
 		User model = createModel(httpRequest.getRequestArguments());
 		DataBase.addUser(model);
 		User foundUser = DataBase.findUserById(model.getUserId());
 		log.info("foundUser ={}", foundUser);
-		return "redirect:/user/login.html";
+		httpResponse.setResponsePath("redirect:/user/login.html");
 	}
 
 	@Override
-	public String doGet(HttpRequest httpRequest) {
-		return null;
-	}
+	public void doGet(HttpRequest httpRequest, HttpResponse httpResponse) {}
 
 	/**
 	 * request를 user 객체로 변경한다

@@ -79,18 +79,19 @@ public class RequestHandler extends Thread {
 
 			// 요청 값을 httpRequest에 담는다
 			HttpRequest httpRequest =
-				new HttpRequest(HttpRequestUtils.parseQueryString(params), "");
+				new HttpRequest(HttpRequestUtils.parseQueryString(params), readCookie(headerLines));
+			HttpResponse httpResponse = new HttpResponse(requestPath);
 
 			if(httpMethod.equals(HttpMethod.POST.name())){
-				requestPath = controller.doPost(httpRequest);
+				controller.doPost(httpRequest, httpResponse);
 			}
 			if(httpMethod.equals(HttpMethod.GET.name())){
-				requestPath = controller.doGet(httpRequest);
+				controller.doGet(httpRequest, httpResponse);
 			}
 
 			// responseBody를 생성하여 응답한다.
 			DataOutputStream dos = new DataOutputStream(out);
-			createResponseBody(dos, requestPath, httpRequest);
+			createResponseBody(dos, httpRequest, httpResponse);
 
 
 		} catch (IOException e) {
@@ -98,19 +99,17 @@ public class RequestHandler extends Thread {
 		}
 	}
 
-	private void createResponseBody(DataOutputStream dos, String requestPath, HttpRequest httpRequest) throws IOException {
+	private void createResponseBody(DataOutputStream dos, HttpRequest httpRequest, HttpResponse httpResponse) throws IOException {
 		byte[] body = null;
-		if(requestPath.contains("redirect:/")){
-			int index = requestPath.indexOf(":");
-			requestPath = requestPath.substring(index+1);
-			body = createViewPath(requestPath);
-			response300Header(dos, body.length, requestPath, httpRequest);
+		String responsePath = httpResponse.getResponsePath();
+		if(responsePath.contains("redirect:/")){
+			int index = responsePath.indexOf(":");
+			responsePath = responsePath.substring(index+1);
+			body = createViewPath(responsePath);
+			response300Header(dos, body.length, responsePath, httpRequest);
 		}else {
-			body = createViewPath(requestPath);
+			body = createViewPath(responsePath);
 			response200Header(dos, body.length, httpRequest);
-		}
-		if(!httpRequest.getCookie().equals("")) {
-			createCookie(dos, httpRequest.getCookie());
 		}
 		responseBody(dos, body);
 	}
@@ -135,6 +134,13 @@ public class RequestHandler extends Thread {
 		return "";
 	}
 
+	private String readCookie(List<String> headerLines){
+		return headerLines.stream()
+			.filter(headerLine -> headerLine.contains("Set-cookies"))
+			.findAny()
+			.orElse("");
+	}
+
 	private void createCookie(DataOutputStream dos, String cookies){
 		try {
 			dos.writeBytes("Set-cookie:" + cookies + "\r\n");
@@ -150,7 +156,7 @@ public class RequestHandler extends Thread {
 			dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
 			dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
 			dos.writeBytes("Location: " + requestPath + "\r\n");
-			if(!httpRequest.getCookie().equals("")) {
+			if(!httpRequest.hasCookies()) {
 				createCookie(dos, httpRequest.getCookie());
 			}
 			dos.writeBytes("\r\n");
@@ -164,7 +170,7 @@ public class RequestHandler extends Thread {
 			dos.writeBytes("HTTP/1.1 200 OK \r\n");
 			dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
 			dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
-			if(!httpRequest.getCookie().equals("")) {
+			if(!httpRequest.hasCookies()) {
 				createCookie(dos, httpRequest.getCookie());
 			}
 			dos.writeBytes("\r\n");
