@@ -81,17 +81,15 @@ public class RequestHandler extends Thread {
 			HandlerMapping handlerMapping = new HandlerMapping();
 			Controller controller = handlerMapping.controller(requestPath);
 
-			if(httpMethod.equals(HttpMethod.POST.name())){
-				requestPath = controller.doPost();
-			}
-			if(httpMethod.equals(HttpMethod.GET.name())){
-				requestPath = controller.doGet();
-			}
-
 			// 요청 값을 객체에 담는다
 			requestArguments = HttpRequestUtils.parseQueryString(params);
-			User model = createModel(requestArguments);
-			log.info("model = {}", model);
+
+			if(httpMethod.equals(HttpMethod.POST.name())){
+				requestPath = controller.doPost(requestArguments);
+			}
+			if(httpMethod.equals(HttpMethod.GET.name())){
+				requestPath = controller.doGet(requestArguments);
+			}
 
 			// responseBody를 생성하여 응답한다.
 			DataOutputStream dos = new DataOutputStream(out);
@@ -100,21 +98,6 @@ public class RequestHandler extends Thread {
 		} catch (IOException e) {
 			log.error(e.getMessage());
 		}
-	}
-
-	/**
-	 * request를 user 객체로 변경한다
-	 * @param requestParams
-	 * @return User
-	 */
-	private User createModel(Map<String, String> requestParams) {
-		// 하드코딩?
-		return new User(
-			requestParams.get("userId")
-			, requestParams.get("name")
-			, requestParams.get("password")
-			, requestParams.getOrDefault("email", null)
-		);
 	}
 
 	private void createResponseBody(DataOutputStream dos, String requestPath) throws IOException {
