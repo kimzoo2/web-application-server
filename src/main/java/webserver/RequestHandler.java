@@ -40,6 +40,7 @@ public class RequestHandler extends Thread {
 			BufferedReader br = new BufferedReader(new InputStreamReader(in));
 			List<String> headerLines = new ArrayList<>();
 			String params = "";
+			boolean isHtml = false;
 
 			// 요청 헤더를 읽는다.
 			while (true) {
@@ -57,6 +58,8 @@ public class RequestHandler extends Thread {
 				}
 				headerLines.add(line);
 			}
+
+			isHtml = isHtml(headerLines);
 
 			for (String headerLine : headerLines) {
 				log.info("headerRead = {}", headerLine);
@@ -91,7 +94,7 @@ public class RequestHandler extends Thread {
 
 			// responseBody를 생성하여 응답한다.
 			DataOutputStream dos = new DataOutputStream(out);
-			createResponseBody(dos, httpRequest, httpResponse);
+			createResponseBody(dos, httpRequest, httpResponse, isHtml);
 
 
 		} catch (IOException e) {
@@ -99,17 +102,22 @@ public class RequestHandler extends Thread {
 		}
 	}
 
-	private void createResponseBody(DataOutputStream dos, HttpRequest httpRequest, HttpResponse httpResponse) throws IOException {
+	private boolean isHtml(List<String> headerLines){
+		return headerLines.stream()
+			.anyMatch(headerLine -> headerLine.contains("text/html"));
+	}
+
+	private void createResponseBody(DataOutputStream dos, HttpRequest httpRequest, HttpResponse httpResponse, Boolean isHtml) throws IOException {
 		byte[] body = null;
 		String responsePath = httpResponse.getResponsePath();
 		if(responsePath.contains("redirect:/")){
 			int index = responsePath.indexOf(":");
 			responsePath = responsePath.substring(index+1);
 			body = createViewPath(responsePath);
-			response300Header(dos, body.length, responsePath, httpRequest);
+			response300Header(dos, body.length, responsePath, httpRequest, isHtml);
 		}else {
 			body = createViewPath(responsePath);
-			response200Header(dos, body.length, httpRequest, httpResponse);
+			response200Header(dos, body.length, httpRequest, httpResponse, isHtml);
 		}
 		responseBody(dos, body);
 	}
@@ -150,10 +158,15 @@ public class RequestHandler extends Thread {
 		}
 	}
 
-	private void response300Header(DataOutputStream dos, int lengthOfBodyContent, String requestPath, HttpRequest httpRequest) {
+	private void response300Header(
+		DataOutputStream dos, int lengthOfBodyContent, String requestPath, HttpRequest httpRequest, boolean isHtml) {
 		try {
 			dos.writeBytes("HTTP/1.1 302 OK \r\n");
-			dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
+			if(!isHtml){
+				dos.writeBytes("Content-Type: text/css;charset=utf=8\r\n");
+			}else {
+				dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
+			}
 			dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
 			dos.writeBytes("Location: " + requestPath + "\r\n");
 			if(!httpRequest.hasCookies()) {
@@ -165,10 +178,15 @@ public class RequestHandler extends Thread {
 		}
 	}
 
-	private void response200Header(DataOutputStream dos, int lengthOfBodyContent, HttpRequest httpRequest, HttpResponse httpResponse) {
+	private void response200Header(
+		DataOutputStream dos, int lengthOfBodyContent, HttpRequest httpRequest, HttpResponse httpResponse, boolean isHtml) {
 		try {
 			dos.writeBytes("HTTP/1.1 200 OK \r\n");
-			dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
+			if(!isHtml){
+				dos.writeBytes("Content-Type: text/css;charset=utf=8\r\n");
+			}else {
+				dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
+			}
 			dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
 			if(!httpRequest.hasCookies()) {
 				createCookie(dos, httpRequest.getCookie());
